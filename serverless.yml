@@ -86,6 +86,32 @@ functions:
           - dynamodb:DeleteItem        
         Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
 
+  getStream:
+    handler: handler/stream.getStream
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: LATEST
+          cors: true
+          arn:
+            Fn::GetAtt:
+              - handlerTable
+              - StreamArn
+    iamRoleStatementsName: nb-shdsvcnpd-itsm-portal-ld3-stream
+    iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - "execute-api:ManageConnections"
+        - dynamodb:Scan
+        - dynamodb:DescribeStream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:ListStreams
+      Resource:
+        - "arn:aws:execute-api:*:*:**/@connections/*"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
 resources:
   Resources:
     handlerTable:
@@ -101,4 +127,6 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
         TableName: ${self:provider.environment.DYNAMODB_TABLE}
